@@ -1,17 +1,42 @@
 package catalogue
 
-import "github.com/gin-gonic/gin"
+import (
+	"errors"
+	"strconv"
 
-func Views(group *gin.RouterGroup) {
-	group.GET("/product", viewProduct)
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+func NewViews(DB *gorm.DB) *Views {
+	return &Views{DB: DB}
 }
 
-type productRes struct {
-	name string
+type Views struct {
+	DB *gorm.DB
 }
 
-func viewProduct(g *gin.Context) {
-	g.JSON(200, productRes{
-		name: "hey",
+func (v *Views) Connect(group *gin.RouterGroup) {
+	group.GET("/product", v.Product)
+}
+
+type ProductRes struct {
+	Name string
+}
+
+func (v *Views) Product(g *gin.Context) {
+	id, err := strconv.Atoi(g.Query("id"))
+	if err != nil {
+		g.JSON(400, ProductRes{})
+		return
+	}
+	p := &Product{}
+	result := v.DB.First(p, id)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		g.JSON(404, ProductRes{})
+		return
+	}
+	g.JSON(200, ProductRes{
+		Name: p.Name,
 	})
 }

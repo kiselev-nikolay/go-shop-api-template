@@ -28,7 +28,7 @@ func TestGorm(t *testing.T) {
 	db.Where("name = ?", "test creator").First(&creator)
 	assert.Equal(t, "test creator", creator.Name)
 
-	user := catalogue.Product{
+	product := catalogue.Product{
 		Code:      "abc",
 		Price:     100,
 		Name:      "test",
@@ -39,10 +39,10 @@ func TestGorm(t *testing.T) {
 			{Name: "test cat 3"},
 		},
 	}
-	db.Create(&user)
-	db.Save(&user)
+	db.Create(&product)
+	db.Save(&product)
 
-	var product catalogue.Product
+	product = catalogue.Product{}
 	db.First(&product, 1)
 	assert.Equal(t, "abc", product.Code)
 
