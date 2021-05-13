@@ -34,6 +34,9 @@ func MustCreateDB() (*gorm.DB, func()) {
 	db, err := gorm.Open(postgres.Open(dockerPg.ConnString()), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
+	if err != nil {
+		log.Fatalln(err)
+	}
 	return db, func() {
 		err := stop()
 		if err != nil {
