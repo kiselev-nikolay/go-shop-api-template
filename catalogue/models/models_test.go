@@ -1,39 +1,40 @@
-package catalogue_test
+package models_test
 
 import (
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/kiselev-nikolay/go-shop-api-template/catalogue"
+	"github.com/kiselev-nikolay/go-shop-api-template/catalogue/models"
+	"github.com/kiselev-nikolay/go-shop-api-template/tools/testtools"
 	"gotest.tools/assert"
 )
 
 // TestGorm is just Gorm test, nothing important
 func TestGorm(t *testing.T) {
-	db, stop := MustCreateDB()
+	db, stop := testtools.MustCreateDB()
 	defer stop()
 
-	err := db.AutoMigrate(&catalogue.Creator{})
+	err := db.AutoMigrate(&models.Creator{})
 	assert.NilError(t, err)
-	err = db.AutoMigrate(&catalogue.Category{})
+	err = db.AutoMigrate(&models.Category{})
 	assert.NilError(t, err)
-	err = db.AutoMigrate(&catalogue.Product{})
+	err = db.AutoMigrate(&models.Product{})
 	assert.NilError(t, err)
 
-	db.Create(&catalogue.Creator{
+	db.Create(&models.Creator{
 		Name: "test creator",
 	})
-	var creator catalogue.Creator
+	var creator models.Creator
 	db.Where("name = ?", "test creator").First(&creator)
 	assert.Equal(t, "test creator", creator.Name)
 
-	product := catalogue.Product{
+	product := models.Product{
 		Code:      "abc",
 		Price:     100,
 		Name:      "test",
 		CreatorID: creator.ID,
-		Categories: []catalogue.Category{
+		Categories: []models.Category{
 			{Name: "test cat 1"},
 			{Name: "test cat 2"},
 			{Name: "test cat 3"},
@@ -42,7 +43,7 @@ func TestGorm(t *testing.T) {
 	db.Create(&product)
 	db.Save(&product)
 
-	product = catalogue.Product{}
+	product = models.Product{}
 	db.First(&product, 1)
 	assert.Equal(t, "abc", product.Code)
 
