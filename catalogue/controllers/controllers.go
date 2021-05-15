@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kiselev-nikolay/go-shop-api-template/catalogue/models"
+	"github.com/kiselev-nikolay/go-shop-api-template/common/detailres"
 	"gorm.io/gorm"
 )
 
@@ -38,10 +39,6 @@ type ProductReq struct {
 	Categories []CategoryReq `json:"categories"`
 }
 
-type Detail struct {
-	Value string `json:"detail"`
-}
-
 func (c *ctrl) Product(g *gin.Context) {
 	req := &ProductReq{}
 	b, _ := g.Request.GetBody()
@@ -49,13 +46,13 @@ func (c *ctrl) Product(g *gin.Context) {
 	fmt.Println(string(x))
 	bindErr := g.Bind(req)
 	if bindErr != nil {
-		g.JSON(400, Detail{"wrong body"})
+		g.JSON(400, detailres.New("wrong body"))
 		return
 	}
 	fmt.Println(req.Creator.ID)
 	creatorSearch := c.DB.First(&models.Creator{}, req.Creator.ID)
 	if errors.Is(creatorSearch.Error, gorm.ErrRecordNotFound) {
-		g.JSON(400, Detail{"creator invalid"})
+		g.JSON(400, detailres.New("creator invalid"))
 		return
 	}
 	cats := make([]models.Category, 0)
@@ -73,8 +70,8 @@ func (c *ctrl) Product(g *gin.Context) {
 	}
 	productCreate := c.DB.Create(p)
 	if errors.Is(productCreate.Error, gorm.ErrRecordNotFound) {
-		g.JSON(400, Detail{"not created"})
+		g.JSON(400, detailres.New("not created"))
 		return
 	}
-	g.JSON(200, Detail{"created"})
+	g.JSON(200, detailres.New("created"))
 }

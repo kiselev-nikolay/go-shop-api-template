@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kiselev-nikolay/go-shop-api-template/catalogue/controllers"
 	"github.com/kiselev-nikolay/go-shop-api-template/catalogue/models"
+	"github.com/kiselev-nikolay/go-shop-api-template/common/detailres"
 	"github.com/kiselev-nikolay/go-shop-api-template/tools/testtools"
 	"gotest.tools/assert"
 )
@@ -64,13 +65,13 @@ func TestViews(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/product", bytes.NewBuffer(data))
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
-		res := &controllers.Detail{}
+		res := detailres.New("")
 		bodyData, err := ioutil.ReadAll(w.Body)
 		assert.NilError(t, err)
 		err = json.Unmarshal(bodyData, res)
 		assert.NilError(t, err)
 		assert.Equal(t, 400, w.Result().StatusCode)
-		assert.DeepEqual(t, res, &controllers.Detail{"creator invalid"})
+		assert.DeepEqual(t, res, detailres.New("creator invalid"))
 	})
 
 	t.Run("Create", func(t *testing.T) {
@@ -92,13 +93,13 @@ func TestViews(t *testing.T) {
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
-		res := &controllers.Detail{}
+		res := detailres.New("")
 		bodyData, err := ioutil.ReadAll(w.Body)
 		assert.NilError(t, err)
 		fmt.Println(string(bodyData))
 		err = json.Unmarshal(bodyData, res)
 		assert.NilError(t, err)
 		assert.Equal(t, 200, w.Result().StatusCode)
-		assert.DeepEqual(t, res, &controllers.Detail{"created"})
+		assert.DeepEqual(t, res, detailres.New("created"))
 	})
 }
