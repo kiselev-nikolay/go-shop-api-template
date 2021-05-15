@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kiselev-nikolay/go-shop-api-template/catalogue/models"
+	"github.com/kiselev-nikolay/go-shop-api-template/common/detailres"
 	"gorm.io/gorm"
 )
 
@@ -31,7 +32,7 @@ type CategoryRes struct {
 
 type ProductRes struct {
 	Code       string        `json:"code"`
-	Price      string        `json:"price"`
+	Price      uint          `json:"price"`
 	Name       string        `json:"name"`
 	Creator    CreatorRes    `json:"creator"`
 	Categories []CategoryRes `json:"categories"`
@@ -40,16 +41,39 @@ type ProductRes struct {
 func (v *views) Product(g *gin.Context) {
 	id, err := strconv.Atoi(g.Query("id"))
 	if err != nil {
-		g.JSON(400, ProductRes{})
+		g.JSON(400, detailres.New("id param is missing or invalid"))
 		return
 	}
 	p := &models.Product{}
-	result := v.DB.First(p, id)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		g.JSON(404, ProductRes{})
+	q := v.DB.First(p, id)
+	if errors.Is(q.Error, gorm.ErrRecordNotFound) {
+		g.JSON(404, detailres.New("product not found"))
 		return
 	}
-	g.JSON(200, ProductRes{
-		Name: p.Name,
-	})
+	creator := &models.Creator{}
+	creatorQ := v.DB.First(creator, p.CreatorID)
+	if errors.Is(creatorQ.Error, gorm.ErrRecordNotFound) {
+		g.JSON(404, detailres.New("creator not found"))
+		return
+	}
+	findCategoriesErr := v.DB.Model(&p).Association("Categories").Find(&p.Categories)
+	if findCategoriesErr != nil {
+		g.JSON(404, detailres.New("categories not found"))
+		return
+	}
+	r := ProductRes{
+		Code:  p.Code,
+		Price: p.Price,
+		Name:  p.Name,
+		Creator: CreatorRes{
+			Name: creator.Name,
+		},
+		Categories: make([]CategoryRes, 0, len(p.Categories)),
+	}
+	for _, cat := range p.Categories {
+		r.Categories = append(r.Categories, CategoryRes{
+			Name: cat.Name,
+		})
+	}
+	g.JSON(200, r)
 }

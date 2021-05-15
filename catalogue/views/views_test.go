@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kiselev-nikolay/go-shop-api-template/catalogue/models"
 	"github.com/kiselev-nikolay/go-shop-api-template/catalogue/views"
+	"github.com/kiselev-nikolay/go-shop-api-template/tools/reqvalid"
 	"github.com/kiselev-nikolay/go-shop-api-template/tools/testtools"
 	"gotest.tools/assert"
 )
@@ -47,6 +48,7 @@ func TestViews(t *testing.T) {
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+	router.Use(reqvalid.ValidateWare())
 	v := views.New(db)
 	router.GET("/product", v.Product)
 
@@ -54,13 +56,10 @@ func TestViews(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/product", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
-		res := &views.ProductRes{}
 		bodyData, err := ioutil.ReadAll(w.Body)
 		assert.NilError(t, err)
-		err = json.Unmarshal(bodyData, res)
-		assert.NilError(t, err)
 		assert.Equal(t, 400, w.Result().StatusCode)
-		assert.DeepEqual(t, res, &views.ProductRes{})
+		assert.DeepEqual(t, string(bodyData), `{"detail":"id param is missing or invalid"}`)
 	})
 
 	t.Run("Simple get", func(t *testing.T) {
@@ -73,19 +72,22 @@ func TestViews(t *testing.T) {
 		err = json.Unmarshal(bodyData, res)
 		assert.NilError(t, err)
 		assert.Equal(t, 200, w.Result().StatusCode)
-		assert.DeepEqual(t, res, &views.ProductRes{Name: "test"})
+		assert.DeepEqual(t, res, &views.ProductRes{
+			Code:       "abc",
+			Price:      100,
+			Name:       "test",
+			Creator:    views.CreatorRes{Name: "test creator"},
+			Categories: []views.CategoryRes{{Name: "test cat 1"}, {Name: "test cat 2"}, {Name: "test cat 3"}},
+		})
 	})
 
 	t.Run("Not found", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/product?id=9999", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
-		res := &views.ProductRes{}
 		bodyData, err := ioutil.ReadAll(w.Body)
 		assert.NilError(t, err)
-		err = json.Unmarshal(bodyData, res)
-		assert.NilError(t, err)
 		assert.Equal(t, 404, w.Result().StatusCode)
-		assert.DeepEqual(t, res, &views.ProductRes{})
+		assert.DeepEqual(t, string(bodyData), `{"detail":"product not found"}`)
 	})
 }

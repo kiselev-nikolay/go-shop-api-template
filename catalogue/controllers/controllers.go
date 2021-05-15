@@ -2,8 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
-	"io/ioutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kiselev-nikolay/go-shop-api-template/catalogue/models"
@@ -24,32 +22,32 @@ func (c *ctrl) Connect(group *gin.RouterGroup) {
 }
 
 type CreatorReq struct {
-	ID uint `json:"id"`
+	ID uint `json:"id" binding:"required"`
 }
 
 type CategoryReq struct {
-	Name string `json:"name"`
+	Name string `json:"name" binding:"required"`
 }
 
 type ProductReq struct {
-	Code       string        `json:"code"`
-	Price      uint          `json:"price"`
-	Name       string        `json:"name"`
-	Creator    CreatorReq    `json:"creator"`
+	Code       string        `json:"code" binding:"required"`
+	Price      uint          `json:"price" binding:"required"`
+	Name       string        `json:"name" binding:"required"`
+	Creator    CreatorReq    `json:"creator" binding:"required"`
 	Categories []CategoryReq `json:"categories"`
+}
+
+type ProductRes struct {
+	ID uint `json:"id"`
 }
 
 func (c *ctrl) Product(g *gin.Context) {
 	req := &ProductReq{}
-	b, _ := g.Request.GetBody()
-	x, _ := ioutil.ReadAll(b)
-	fmt.Println(string(x))
 	bindErr := g.Bind(req)
 	if bindErr != nil {
-		g.JSON(400, detailres.New("wrong body"))
+		g.JSON(400, detailres.New("wrong body"+bindErr.Error()))
 		return
 	}
-	fmt.Println(req.Creator.ID)
 	creatorSearch := c.DB.First(&models.Creator{}, req.Creator.ID)
 	if errors.Is(creatorSearch.Error, gorm.ErrRecordNotFound) {
 		g.JSON(400, detailres.New("creator invalid"))
@@ -57,9 +55,11 @@ func (c *ctrl) Product(g *gin.Context) {
 	}
 	cats := make([]models.Category, 0)
 	for _, cat := range req.Categories {
-		cats = append(cats, models.Category{
+		dbCat := &models.Category{
 			Name: cat.Name,
-		})
+		}
+		c.DB.FirstOrCreate(dbCat, "name = ?", cat.Name)
+		cats = append(cats, *dbCat)
 	}
 	p := &models.Product{
 		Code:       req.Code,
@@ -73,5 +73,5 @@ func (c *ctrl) Product(g *gin.Context) {
 		g.JSON(400, detailres.New("not created"))
 		return
 	}
-	g.JSON(200, detailres.New("created"))
+	g.JSON(200, &ProductRes{ID: p.ID})
 }
